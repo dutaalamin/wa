@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const { sendWhatsAppMessage } = require('./services/fonnte');
@@ -10,10 +11,15 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// 1. Endpoint Utama / Cek Server
+// 1. Endpoint Utama: Melayani HTML Dashboard Interaktif
 app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 2. Endpoint Cek Server JSON
+app.get('/api/health', (req, res) => {
   res.json({
     message: '🚀 WhatsApp Meeting Reminder Bot Server Online!',
     endpoints: {
@@ -25,19 +31,19 @@ app.get('/', (req, res) => {
   });
 });
 
-// 2. Endpoint Vercel Cron Job (Jalan otomatis di Vercel cloud tiap menit)
+// 3. Endpoint Vercel Cron Job (Jalan otomatis di Vercel cloud)
 app.get('/api/cron', async (req, res) => {
   const result = await checkAndSendReminders();
   res.json({ success: true, message: 'Vercel Cron Triggered', data: result });
 });
 
-// 3. Endpoint Mengambil Seluruh Jadwal Meeting
+// 4. Endpoint Mengambil Seluruh Jadwal Meeting
 app.get('/api/meetings', (req, res) => {
   const meetings = getMeetings();
   res.json({ success: true, data: meetings });
 });
 
-// 4. Endpoint Menambah Jadwal Meeting Baru
+// 5. Endpoint Menambah Jadwal Meeting Baru
 app.post('/api/meetings', (req, res) => {
   const { clientName, phone, meetingTitle, meetingTime, reminderMinutesBefore } = req.body;
 
@@ -67,7 +73,7 @@ app.post('/api/meetings', (req, res) => {
   res.json({ success: true, message: 'Jadwal meeting berhasil ditambahkan!', data: newMeeting });
 });
 
-// 5. Endpoint Tes Kirim Pesan WA Langsung
+// 6. Endpoint Tes Kirim Pesan WA Langsung
 app.post('/api/send-test', async (req, res) => {
   const { phone, message } = req.body;
 
@@ -82,7 +88,7 @@ app.post('/api/send-test', async (req, res) => {
   res.json({ success: true, result });
 });
 
-// 6. Endpoint Webhook Fonnte (Input Jadwal via Chat WA Langsung!)
+// 7. Endpoint Webhook Fonnte (Input Jadwal via Chat WA Langsung!)
 app.post('/api/webhook', async (req, res) => {
   const { sender, message } = req.body;
 
@@ -131,7 +137,7 @@ app.post('/api/webhook', async (req, res) => {
   res.json({ status: true });
 });
 
-// Start Local Server jika dijalankan secara lokal (bukan Vercel Serverless)
+// Start Local Server jika dijalankan secara lokal
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`==================================================`);
