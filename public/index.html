@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Reminder Bot Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen p-6 sm:p-10">
+
+  <div class="max-w-4xl mx-auto space-y-8">
+    
+    <!-- Header -->
+    <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs font-semibold uppercase tracking-wider mb-2">
+          <span>● Server Online</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">WhatsApp Reminder Bot</h1>
+        <p class="text-slate-500 text-sm mt-1">Kelola dan kirim pengingat jadwal meeting otomatis ke pelanggan via WA</p>
+      </div>
+      <div class="px-4 py-2 bg-slate-900 text-white rounded-2xl text-xs font-mono">
+        Port: 3000
+      </div>
+    </div>
+
+    <!-- Grid 2 Column -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      
+      <!-- Card 1: Form Tambah Jadwal Meeting -->
+      <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
+        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <span>📅</span> Tambah Jadwal Meeting
+        </h2>
+
+        <form id="addMeetingForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nama Client</label>
+            <input type="text" id="clientName" required placeholder="Contoh: Pak Budi" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nomor WhatsApp Client</label>
+            <input type="text" id="phone" required placeholder="Contoh: 08123456789" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Topik / Agendakan Meeting</label>
+            <input type="text" id="meetingTitle" required placeholder="Contoh: Diskusi Desain Web UI" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Waktu Meeting</label>
+              <input type="datetime-local" id="meetingTime" required class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Kirim H- Menit</label>
+              <input type="number" id="reminderMinutesBefore" value="60" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+          </div>
+
+          <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-sm rounded-xl transition-all shadow-md">
+            + Simpan Jadwal Reminder
+          </button>
+        </form>
+      </div>
+
+      <!-- Card 2: Tes Kirim WA Langsung -->
+      <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5 flex flex-col justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span>🚀</span> Tes Kirim Pesan WA Langsung
+          </h2>
+          <p class="text-xs text-slate-500 mt-1">Uji coba koneksi Fonnte API dengan langsung nembak pesan tes ke HP kamu.</p>
+
+          <form id="testWaForm" class="space-y-4 mt-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nomor Tujuan WA</label>
+              <input type="text" id="testPhone" required placeholder="08123456789" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Isi Pesan Tes</label>
+              <textarea id="testMessage" rows="3" required placeholder="Halo, ini tes pesan otomatis dari WA Reminder Bot!" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-semibold text-sm rounded-xl transition-all shadow-md">
+              Kirim Pesan Tes
+            </button>
+          </form>
+        </div>
+
+        <div id="alertBox" class="hidden p-4 rounded-2xl text-xs font-medium"></div>
+      </div>
+
+    </div>
+
+    <!-- Daftar Meeting Section -->
+    <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold text-slate-900">Daftar Jadwal Meeting & Status Reminder</h2>
+        <button onclick="loadMeetings()" class="text-xs font-semibold text-emerald-600 hover:underline">🔄 Refresh Data</button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-xs uppercase text-slate-400 font-semibold border-b border-slate-100">
+            <tr>
+              <th class="p-3">Client</th>
+              <th class="p-3">Nomor WA</th>
+              <th class="p-3">Topik Meeting</th>
+              <th class="p-3">Jadwal Meeting</th>
+              <th class="p-3">Status WA</th>
+            </tr>
+          </thead>
+          <tbody id="meetingTableBody" class="divide-y divide-slate-100">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    async function loadMeetings() {
+      try {
+        const res = await fetch('/api/meetings');
+        const json = await res.json();
+        const tbody = document.getElementById('meetingTableBody');
+        tbody.innerHTML = '';
+
+        if (!json.data || json.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 text-xs">Belum ada jadwal meeting. Tambahkan jadwal di atas!</td></tr>';
+          return;
+        }
+
+        json.data.forEach(m => {
+          const row = document.createElement('tr');
+          const isSent = m.status === 'sent';
+          row.innerHTML = `
+            <td class="p-3 font-semibold text-slate-900">${m.clientName}</td>
+            <td class="p-3 font-mono text-xs">${m.phone}</td>
+            <td class="p-3">${m.meetingTitle}</td>
+            <td class="p-3 text-xs font-mono">${m.meetingTime}</td>
+            <td class="p-3">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${isSent ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                ${isSent ? '✅ Terkirim' : '⏳ Menunggu Waktu'}
+              </span>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    document.getElementById('addMeetingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const rawDate = document.getElementById('meetingTime').value; // "YYYY-MM-DDTHH:mm"
+      const formattedDate = rawDate.replace('T', ' ');
+
+      const payload = {
+        clientName: document.getElementById('clientName').value,
+        phone: document.getElementById('phone').value,
+        meetingTitle: document.getElementById('meetingTitle').value,
+        meetingTime: formattedDate,
+        reminderMinutesBefore: document.getElementById('reminderMinutesBefore').value
+      };
+
+      const res = await fetch('/api/meetings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const json = await res.json();
+      showAlert(json.message, json.success);
+      if (json.success) {
+        document.getElementById('addMeetingForm').reset();
+        loadMeetings();
+      }
+    });
+
+    document.getElementById('testWaForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        phone: document.getElementById('testPhone').value,
+        message: document.getElementById('testMessage').value
+      };
+
+      const res = await fetch('/api/send-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const json = await res.json();
+      if (json.success && json.result && json.result.status) {
+        showAlert('✅ Pesan tes BERHASIL terkirim ke WhatsApp!', true);
+      } else {
+        const errorMsg = json.result?.detail || json.result?.reason || json.result?.message || 'Gagal terhubung ke Fonnte';
+        showAlert('❌ Gagal kirim: ' + errorMsg, false);
+      }
+    });
+
+    function showAlert(msg, isSuccess) {
+      const box = document.getElementById('alertBox');
+      box.className = `p-4 rounded-2xl text-xs font-medium block ${isSuccess ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`;
+      box.innerText = msg;
+    }
+
+    loadMeetings();
+  </script>
+</body>
+</html>
