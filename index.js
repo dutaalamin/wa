@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const { sendWhatsAppMessage } = require('./services/fonnte');
-const { initScheduler, getMeetings, saveMeetings } = require('./services/scheduler');
+const { initScheduler, checkAndSendReminders, getMeetings, saveMeetings } = require('./services/scheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,17 +20,24 @@ app.get('/', (req, res) => {
       getMeetings: 'GET /api/meetings',
       addMeeting: 'POST /api/meetings',
       sendTestWA: 'POST /api/send-test',
+      vercelCron: 'GET /api/cron',
     },
   });
 });
 
-// 2. Endpoint Mengambil Seluruh Jadwal Meeting
+// 2. Endpoint Vercel Cron Job (Jalan otomatis di Vercel cloud tiap menit)
+app.get('/api/cron', async (req, res) => {
+  const result = await checkAndSendReminders();
+  res.json({ success: true, message: 'Vercel Cron Triggered', data: result });
+});
+
+// 3. Endpoint Mengambil Seluruh Jadwal Meeting
 app.get('/api/meetings', (req, res) => {
   const meetings = getMeetings();
   res.json({ success: true, data: meetings });
 });
 
-// 3. Endpoint Menambah Jadwal Meeting Baru
+// 4. Endpoint Menambah Jadwal Meeting Baru
 app.post('/api/meetings', (req, res) => {
   const { clientName, phone, meetingTitle, meetingTime, reminderMinutesBefore } = req.body;
 
@@ -47,7 +54,7 @@ app.post('/api/meetings', (req, res) => {
     clientName,
     phone,
     meetingTitle,
-    meetingTime, // Format: "YYYY-MM-DD HH:mm" (misal: "2026-09-02 15:30")
+    meetingTime,
     reminderMinutesBefore: parseInt(reminderMinutesBefore) || 60,
     status: 'pending',
     createdAt: new Date().toISOString(),
@@ -60,7 +67,7 @@ app.post('/api/meetings', (req, res) => {
   res.json({ success: true, message: 'Jadwal meeting berhasil ditambahkan!', data: newMeeting });
 });
 
-// 4. Endpoint Tes Kirim Pesan WA Langsung
+// 5. Endpoint Tes Kirim Pesan WA Langsung
 app.post('/api/send-test', async (req, res) => {
   const { phone, message } = req.body;
 
@@ -75,14 +82,12 @@ app.post('/api/send-test', async (req, res) => {
   res.json({ success: true, result });
 });
 
-// 5. Endpoint Webhook Fonnte (Input Jadwal via Chat WA Langsung!)
-// Format Chat dari WA: #jadwal Nama | Topik | YYYY-MM-DD HH:mm
-// Contoh: #jadwal Pak Budi | Diskusi Project UI | 2026-09-03 14:00
+// 6. Endpoint Webhook Fonnte (Input Jadwal via Chat WA Langsung!)
 app.post('/api/webhook', async (req, res) => {
   const { sender, message } = req.body;
 
   if (message && message.toLowerCase().startsWith('#jadwal')) {
-    const content = message.substring(7).trim(); // Hapus teks '#jadwal'
+    const content = message.substring(7).trim();
     const parts = content.split('|').map((p) => p.trim());
 
     if (parts.length >= 3) {
@@ -105,7 +110,6 @@ app.post('/api/webhook', async (req, res) => {
 
       console.log('📌 [Jadwal Baru via Chat WA]:', newMeeting);
 
-      // Balas pesan WA otomatis ke client bahwa jadwal sudah tersimpan!
       const replyMsg = `✅ *Jadwal Meeting Berhasil Dibuat!*\n\n` +
         `👤 *Client*: ${clientName}\n` +
         `📌 *Topik*: ${meetingTitle}\n` +
@@ -127,12 +131,14 @@ app.post('/api/webhook', async (req, res) => {
   res.json({ status: true });
 });
 
-// Jalankan Express Server & Cron Scheduler
-app.listen(PORT, () => {
-  console.log(`==================================================`);
-  console.log(`🟢 WA Reminder Bot Server aktif di http://localhost:${PORT}`);
-  console.log(`==================================================`);
+// Start Local Server jika dijalankan secara lokal (bukan Vercel Serverless)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`==================================================`);
+    console.log(`🟢 WA Reminder Bot Server aktif di http://localhost:${PORT}`);
+    console.log(`==================================================`);
+    initScheduler();
+  });
+}
 
-  // Jalankan Scheduler Cron Job
-  initScheduler();
-});
+module.exports = app;
