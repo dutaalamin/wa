@@ -28,7 +28,8 @@
     "meetingTitle": "Keliling Update Progress",
     "meetingTime": "2026-09-02 16:00",
     "reminderMinutesBefore": 30,
-    "status": "pending",
-    "createdAt": "2026-09-02T13:10:00.000Z"
+    "status": "sent",
+    "createdAt": "2026-09-02T13:10:00.000Z",
+    "sentAt": "2026-09-02T08:30:00.375Z"
   }
 ]

@@ -21,10 +21,8 @@ function parseNaturalMeeting(message) {
 
   let hour = 14;
   let minute = 0;
-  let hasTime = false;
 
   if (match) {
-    hasTime = true;
     if (match[1] !== undefined) {
       hour = parseInt(match[1]);
       minute = match[2] ? parseInt(match[2]) : 0;
@@ -69,8 +67,7 @@ function parseNaturalMeeting(message) {
     meetingTitle: `Meeting ${cleanedName}`,
     meetingTime: formattedTimeStr,
     displayDate: targetDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-    displayTime: `${hh}:${min}`,
-    hasTime,
+    displayTime: `${hh}.${min}`,
   };
 }
 
@@ -149,7 +146,7 @@ app.post('/api/send-test', async (req, res) => {
   res.json({ success: true, result });
 });
 
-// 7. Endpoint Webhook Fonnte (Mendukung GET & POST dari Fonnte)
+// 7. Endpoint Webhook Fonnte (Template Formal & Profesional dengan Emoji)
 app.all('/api/webhook', async (req, res) => {
   console.log('📥 [Webhook Incoming Hit]: Method=', req.method, 'Body=', req.body, 'Query=', req.query);
 
@@ -157,7 +154,6 @@ app.all('/api/webhook', async (req, res) => {
   const sender = payload.sender || payload.from || payload.phone;
   const message = payload.message || payload.text || payload.body;
 
-  // Balas respons HTTP ke Fonnte secepat mungkin agar Fonnte tahu Webhook Sukses!
   res.status(200).send('OK');
 
   if (sender && message && typeof message === 'string') {
@@ -179,15 +175,26 @@ app.all('/api/webhook', async (req, res) => {
       meetings.push(newMeeting);
       saveMeetings(meetings);
 
-      console.log('📌 [Jadwal Baru via Chat WA Alami]:', newMeeting);
+      console.log('📌 [Jadwal Baru Formal]:', newMeeting);
 
-      const replyMsg = `✅ *Siap! Pengingat Meeting Berhasil Dicatat!*\n\n` +
-        `👤 *Nama*: ${parsed.clientName}\n` +
-        `📅 *Hari/Tanggal*: ${parsed.displayDate}\n` +
-        `⏰ *Waktu*: ${parsed.displayTime} WIB\n\n` +
-        `Bot akan otomatis mengirimkan pesan pengingat WA sebelum meeting dimulai. Terima kasih! 🙏`;
+      // TEMPLATE FORMAL & MEWAH UNTUK WA
+      const formalReplyMsg = `━━━━━━━━━━━━━━━━━━━━━\n` +
+        `  🗓️  *KONFIRMASI JADWAL MEETING*\n` +
+        `━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `Yth. *${parsed.clientName}*,\n\n` +
+        `Jadwal meeting Anda telah berhasil terdaftar dan masuk ke dalam sistem pengingat otomatis kami.\n\n` +
+        `📋 *Rincian Agenda*:\n` +
+        ` • 👤 *Client/Mitra*: ${parsed.clientName}\n` +
+        ` • 📌 *Agenda*: ${parsed.meetingTitle}\n` +
+        ` • 📅 *Hari & Tanggal*: ${parsed.displayDate}\n` +
+        ` • ⏰ *Waktu*: ${parsed.displayTime} WIB\n\n` +
+        `🔔 *Sistem Pengingat*:\n` +
+        `Sistem akan secara otomatis mengirimkan notifikasi pengingat H-1 jam sebelum waktu meeting dimulai.\n\n` +
+        `Terima kasih atas kerja samanya.\n` +
+        `━━━━━━━━━━━━━━━━━━━━━\n` +
+        `_Pesan ini dikirim otomatis oleh WA Meeting Assistant_`;
 
-      await sendWhatsAppMessage(sender, replyMsg);
+      await sendWhatsAppMessage(sender, formalReplyMsg);
     } catch (err) {
       console.error('❌ Gagal memproses Webhook chat:', err);
     }
