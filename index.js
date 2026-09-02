@@ -10,12 +10,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
+// Dukung parsing JSON maupun Form-Urlencoded dari Fonnte Webhook!
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Helper Parsing Jam & Tanggal secara Fleksibel & Alami
 function parseNaturalMeeting(message) {
-  // Ekstrak pola jam (misal: "14:00", "14.00", "jam 14", "jam 2")
   const timeRegex = /(?:jam\s*(\d{1,2})(?::(\d{2}))?)|(?:(\d{1,2})[.:](\d{2}))/i;
   const match = message.match(timeRegex);
 
@@ -34,20 +35,17 @@ function parseNaturalMeeting(message) {
     }
   }
 
-  // Jika jam ditulis format 12 jam (misal jam 2), sesuaikan ke siang jika < 7
   if (hour < 7) hour += 12;
 
   const now = new Date();
   let targetDate = new Date();
 
-  // Cek apakah ada kata "besok"
   if (message.toLowerCase().includes('besok')) {
     targetDate.setDate(now.getDate() + 1);
   }
 
   targetDate.setHours(hour, minute, 0, 0);
 
-  // Jika jamnya sudah lewat hari ini dan tidak sebut besok, otomatis set ke besok
   if (targetDate <= now && !message.toLowerCase().includes('besok')) {
     targetDate.setDate(targetDate.getDate() + 1);
   }
@@ -60,7 +58,6 @@ function parseNaturalMeeting(message) {
 
   const formattedTimeStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 
-  // Bersihkan teks untuk nama client/topik
   let cleanedName = message
     .replace(/^(meeting|jadwal|remind|ingatkan|buat|catat)\s*/i, '')
     .replace(/(besok|hari ini|jam\s*\d+(?::\d+)?|\d{1,2}[.:]\d{2})/gi, '')
@@ -153,12 +150,14 @@ app.post('/api/send-test', async (req, res) => {
   res.json({ success: true, result });
 });
 
-// 7. Endpoint Webhook Fonnte (Bisa Chat Bebas & Alami!)
-// Contoh Chat: "Meeting Pak Budi jam 14:00" atau "Jadwal Dwidaya Tour besok jam 3"
+// 7. Endpoint Webhook Fonnte (Bisa Chat Form & JSON!)
 app.post('/api/webhook', async (req, res) => {
-  const { sender, message } = req.body;
+  console.log('📥 [Webhook Incoming Payload]:', req.body);
 
-  if (message && typeof message === 'string') {
+  const sender = req.body.sender || req.body.from || req.body.phone;
+  const message = req.body.message || req.body.text || req.body.body;
+
+  if (sender && message && typeof message === 'string') {
     const parsed = parseNaturalMeeting(message);
 
     const meetings = getMeetings();
