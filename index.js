@@ -10,7 +10,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-// Dukung parsing JSON maupun Form-Urlencoded dari Fonnte Webhook!
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -150,44 +149,49 @@ app.post('/api/send-test', async (req, res) => {
   res.json({ success: true, result });
 });
 
-// 7. Endpoint Webhook Fonnte (Bisa Chat Form & JSON!)
-app.post('/api/webhook', async (req, res) => {
-  console.log('📥 [Webhook Incoming Payload]:', req.body);
+// 7. Endpoint Webhook Fonnte (Mendukung GET & POST dari Fonnte)
+app.all('/api/webhook', async (req, res) => {
+  console.log('📥 [Webhook Incoming Hit]: Method=', req.method, 'Body=', req.body, 'Query=', req.query);
 
-  const sender = req.body.sender || req.body.from || req.body.phone;
-  const message = req.body.message || req.body.text || req.body.body;
+  const payload = req.method === 'POST' ? req.body : req.query;
+  const sender = payload.sender || payload.from || payload.phone;
+  const message = payload.message || payload.text || payload.body;
+
+  // Balas respons HTTP ke Fonnte secepat mungkin agar Fonnte tahu Webhook Sukses!
+  res.status(200).send('OK');
 
   if (sender && message && typeof message === 'string') {
-    const parsed = parseNaturalMeeting(message);
+    try {
+      const parsed = parseNaturalMeeting(message);
 
-    const meetings = getMeetings();
-    const newMeeting = {
-      id: Date.now(),
-      clientName: parsed.clientName,
-      phone: sender,
-      meetingTitle: parsed.meetingTitle,
-      meetingTime: parsed.meetingTime,
-      reminderMinutesBefore: 60,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
+      const meetings = getMeetings();
+      const newMeeting = {
+        id: Date.now(),
+        clientName: parsed.clientName,
+        phone: sender,
+        meetingTitle: parsed.meetingTitle,
+        meetingTime: parsed.meetingTime,
+        reminderMinutesBefore: 60,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
 
-    meetings.push(newMeeting);
-    saveMeetings(meetings);
+      meetings.push(newMeeting);
+      saveMeetings(meetings);
 
-    console.log('📌 [Jadwal Baru via Chat WA Alami]:', newMeeting);
+      console.log('📌 [Jadwal Baru via Chat WA Alami]:', newMeeting);
 
-    // Balasan WA ramah & alami dari Bot
-    const replyMsg = `✅ *Siap! Pengingat Meeting Berhasil Dicatat!*\n\n` +
-      `👤 *Nama*: ${parsed.clientName}\n` +
-      `📅 *Hari/Tanggal*: ${parsed.displayDate}\n` +
-      `⏰ *Waktu*: ${parsed.displayTime} WIB\n\n` +
-      `Bot akan otomatis mengirimkan pesan pengingat WA sebelum meeting dimulai. Terima kasih! 🙏`;
+      const replyMsg = `✅ *Siap! Pengingat Meeting Berhasil Dicatat!*\n\n` +
+        `👤 *Nama*: ${parsed.clientName}\n` +
+        `📅 *Hari/Tanggal*: ${parsed.displayDate}\n` +
+        `⏰ *Waktu*: ${parsed.displayTime} WIB\n\n` +
+        `Bot akan otomatis mengirimkan pesan pengingat WA sebelum meeting dimulai. Terima kasih! 🙏`;
 
-    await sendWhatsAppMessage(sender, replyMsg);
+      await sendWhatsAppMessage(sender, replyMsg);
+    } catch (err) {
+      console.error('❌ Gagal memproses Webhook chat:', err);
+    }
   }
-
-  res.json({ status: true });
 });
 
 // Start Local Server jika dijalankan secara lokal
